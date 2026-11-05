@@ -7,7 +7,23 @@
       name="description"
       content="HelpDesk - Central de atendimento e gestão de chamados"
     />
-    <meta name="theme-color" content="#0b1714" />
+    <meta name="theme-color" content="#f0f2f5" />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('helpdesk-theme');
+          if (!t)
+            t = window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+          document.documentElement.dataset.theme = t;
+          var m = document.querySelector('meta[name="theme-color"]');
+          if (m) m.setAttribute('content', t === 'dark' ? '#0f151d' : '#f0f2f5');
+        } catch (e) {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script>
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%2314a884'/%3E%3Cpath d='M8 6v12M16 6v12M8 12h8' stroke='%2306231a' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E"

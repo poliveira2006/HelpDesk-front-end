@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { api, fmt } from '../api.js';
+import { Inbox } from '../components/icons.jsx';
 
 const P = [
   ['1', '1 dia'],
@@ -115,24 +116,24 @@ export default function Dashboard() {
             <tbody>
               {data?.recentes?.map((t) => (
                 <tr key={t.id}>
-                  <td>{t.id}</td>
+                  <td className="strong">{t.id}</td>
                   <td>
-                    <span className="badge" style={{ background: t.cor }}>
+                    <span className="badge" style={{ '--c': t.cor }}>
                       {(t.prioridade || '').split(' - ')[0]}
                     </span>
                   </td>
-                  <td>{t.titulo}</td>
+                  <td className="strong">{t.titulo}</td>
                   <td>{fmt(t.criadoEm)}</td>
                   <td>{t.status}</td>
                 </tr>
               ))}
               {data && !data.recentes?.length && (
                 <tr>
-                  <td
-                    colSpan={5}
-                    style={{ textAlign: 'center', color: '#98a0a9' }}
-                  >
-                    Nenhum ticket atualizado no período.
+                  <td colSpan={5}>
+                    <div className="empty">
+                      <Inbox size={28} />
+                      Nenhum ticket atualizado no período.
+                    </div>
                   </td>
                 </tr>
               )}
