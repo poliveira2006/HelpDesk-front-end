@@ -149,7 +149,7 @@ export default function NovoTicket() {
             l="Categoria *"
           />
           <R l="Mensagens">
-            <div style={{ background: '#fcf8e3', padding: 6 }}>
+            <div className="callout">
               Por favor, anexe um documento ou print com a evidência da
               inconsistência.
             </div>

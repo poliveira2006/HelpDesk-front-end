@@ -2,6 +2,15 @@ import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, fmt } from '../api.js';
 import { useLookups } from '../hooks.js';
+import { X } from './icons.jsx';
+const initials = (n) =>
+  (n || '?')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase();
 export default function TicketModal({ id, edit, onClose }) {
   const qc = useQueryClient(),
     { data: L = {} } = useLookups();
@@ -56,8 +65,12 @@ export default function TicketModal({ id, edit, onClose }) {
       <div className="box">
         <h3>
           Ticket #{id}
-          <button className="btn sec sm" onClick={onClose}>
-            ✕
+          <button
+            className="btn sec sm icon-btn"
+            onClick={onClose}
+            aria-label="Fechar"
+          >
+            <X size={14} />
           </button>
         </h3>
         <div className="body form">
@@ -103,14 +116,19 @@ export default function TicketModal({ id, edit, onClose }) {
           </div>
           <div className="row">
             <label>Mensagens</label>
-            <div>
+            <div className="msgs">
               {t.mensagens.length
                 ? t.mensagens.map((m, i) => (
-                    <p key={i}>
-                      <b>{m.nome}</b> · {fmt(m.criadoEm)}
-                      <br />
-                      {m.texto}
-                    </p>
+                    <div className="msg" key={i}>
+                      <span className="msg-ava">{initials(m.nome)}</span>
+                      <div>
+                        <div className="msg-head">
+                          <b>{m.nome}</b>
+                          <time>{fmt(m.criadoEm)}</time>
+                        </div>
+                        <div className="msg-text">{m.texto}</div>
+                      </div>
+                    </div>
                   ))
                 : '—'}
             </div>

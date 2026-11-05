@@ -3,6 +3,8 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../auth.jsx';
 import ProfileMenu from './ProfileMenu.jsx';
+import ThemeToggle from './ThemeToggle.jsx';
+import Logo from './Logo.jsx';
 
 const I = ({ d, size = 17 }) => (
   <svg
@@ -104,6 +106,10 @@ export default function Layout() {
   return (
     <div className={col ? 'collapsed' : ''}>
       <div id="side">
+        <div className="brand">
+          <Logo size={27} />
+          <b>HelpDesk</b>
+        </div>
         <div className="me">
           <ProfileMenu>
             <span className="who">
@@ -112,16 +118,18 @@ export default function Layout() {
             </span>
           </ProfileMenu>
         </div>
-        {links.map(([to, t, ic]) => (
-          <NavLink
-            key={to}
-            to={'/' + to}
-            className={({ isActive }) => (isActive ? 'on' : '')}
-          >
-            <I d={P[ic]} />
-            {t}
-          </NavLink>
-        ))}
+        <nav aria-label="Navegação principal">
+          {links.map(([to, t, ic]) => (
+            <NavLink
+              key={to}
+              to={'/' + to}
+              className={({ isActive }) => (isActive ? 'on' : '')}
+            >
+              <I d={P[ic]} />
+              {t}
+            </NavLink>
+          ))}
+        </nav>
       </div>
       <div id="main">
         <div className="top">
@@ -133,6 +141,7 @@ export default function Layout() {
             <I d={P.burger} size={22} />
           </button>
           <span className="title">{TITLES[loc.pathname] || 'HelpDesk'}</span>
+          <ThemeToggle />
           <a
             href="#/login"
             className="logout"

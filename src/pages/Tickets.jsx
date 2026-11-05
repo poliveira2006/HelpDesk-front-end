@@ -8,6 +8,14 @@ import {
 import { api, fmt, qs } from '../api.js';
 import Filters from '../components/Filters.jsx';
 import TicketModal from '../components/TicketModal.jsx';
+import {
+  Download,
+  Refresh,
+  ChevronLeft,
+  ChevronRight,
+  Inbox,
+  Plus,
+} from '../components/icons.jsx';
 const TITLE = {
   meus: 'Meus Tickets',
   ativos: 'Tickets Ativos',
@@ -61,8 +69,8 @@ export default function Tickets({ scope }) {
     <>
       <div className="head">
         <h1>{TITLE[scope]}</h1>
-        <button className="btn" onClick={() => nav('/novo')}>
-          Novo Ticket
+        <button className="btn icon-btn" onClick={() => nav('/novo')}>
+          <Plus size={14} /> Novo Ticket
         </button>
       </div>
       {scope === 'meus' && (
@@ -114,11 +122,11 @@ export default function Tickets({ scope }) {
         <h3>
           <span>Lista de Tickets ({data?.total ?? 0})</span>
           <span>
-            <button className="btn sec sm" onClick={exportCsv}>
-              ⭳ Exportar
+            <button className="btn sec sm icon-btn" onClick={exportCsv}>
+              <Download size={13} /> Exportar
             </button>{' '}
-            <button className="btn sec sm" onClick={() => refetch()}>
-              ⟳ Atualizar
+            <button className="btn sec sm icon-btn" onClick={() => refetch()}>
+              <Refresh size={13} /> Atualizar
             </button>
           </span>
         </h3>
@@ -144,13 +152,13 @@ export default function Tickets({ scope }) {
             <tbody>
               {data?.items.map((t) => (
                 <tr key={t.id}>
-                  <td>{t.id}</td>
+                  <td className="strong">{t.id}</td>
                   <td>
-                    <span className="badge" style={{ background: t.cor }}>
+                    <span className="badge" style={{ '--c': t.cor }}>
                       {t.prioridade.split(' - ')[0]}
                     </span>
                   </td>
-                  <td>{t.titulo}</td>
+                  <td className="strong">{t.titulo}</td>
                   <td>{fmt(t.criadoEm)}</td>
                   <td>{t.sistema}</td>
                   <td>{t.status}</td>
@@ -178,7 +186,12 @@ export default function Tickets({ scope }) {
               ))}
               {data && !data.items.length && (
                 <tr>
-                  <td colSpan={13}>Nenhum ticket.</td>
+                  <td colSpan={13}>
+                    <div className="empty">
+                      <Inbox size={28} />
+                      Nenhum ticket encontrado.
+                    </div>
+                  </td>
                 </tr>
               )}
             </tbody>
@@ -186,19 +199,23 @@ export default function Tickets({ scope }) {
         </div>
         <div className="pg">
           <button
-            className="btn sec sm"
+            className="pg-btn"
+            aria-label="Página anterior"
             disabled={page < 2}
             onClick={() => setPage(page - 1)}
           >
-            ‹
-          </button>{' '}
-          {page}/{pages}
+            <ChevronLeft size={15} />
+          </button>
+          <span>
+            {page}/{pages}
+          </span>
           <button
-            className="btn sec sm"
+            className="pg-btn"
+            aria-label="Próxima página"
             disabled={page >= pages}
             onClick={() => setPage(page + 1)}
           >
-            ›
+            <ChevronRight size={15} />
           </button>
         </div>
       </div>

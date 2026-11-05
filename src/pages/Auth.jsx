@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import { api } from '../api.js';
+import ThemeToggle from '../components/ThemeToggle.jsx';
+import Logo from '../components/Logo.jsx';
 
 const Icon = ({ children, size = 18, stroke = 1.8 }) => (
   <svg
@@ -49,9 +51,13 @@ const I = {
 
 const Shell = ({ title, sub, children, footer }) => (
   <div className="auth">
+    <div className="auth-theme">
+      <ThemeToggle />
+    </div>
     <aside className="auth-side">
       <div className="auth-brand">
-        HelpDesk<em>.</em>
+        <Logo size={64} />
+        <span>HelpDesk</span>
       </div>
     </aside>
     <main className="auth-main">
