@@ -11,9 +11,6 @@ const Private = () => {
 };
 const Manual = () => (
   <>
-    <div className="head">
-      <h1>Manual</h1>
-    </div>
     <div className="box">
       <div className="body">Documentação de uso do HelpDesk.</div>
     </div>

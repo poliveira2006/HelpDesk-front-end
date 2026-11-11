@@ -16,11 +16,6 @@ import {
   Inbox,
   Plus,
 } from '../components/icons.jsx';
-const TITLE = {
-  meus: 'Meus Tickets',
-  ativos: 'Tickets Ativos',
-  todos: 'Todos os Tickets',
-};
 export default function Tickets({ scope }) {
   const nav = useNavigate(),
     qc = useQueryClient();
@@ -68,7 +63,6 @@ export default function Tickets({ scope }) {
   return (
     <>
       <div className="head">
-        <h1>{TITLE[scope]}</h1>
         <button className="btn icon-btn" onClick={() => nav('/novo')}>
           <Plus size={14} /> Novo Ticket
         </button>
