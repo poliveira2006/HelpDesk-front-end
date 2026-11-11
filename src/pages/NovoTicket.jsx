@@ -89,9 +89,6 @@ export default function NovoTicket() {
   };
   return (
     <>
-      <div className="head">
-        <h1>Novo Ticket</h1>
-      </div>
       <div className="box">
         <h3>Dados do Novo Ticket</h3>
         <div className="body form">
