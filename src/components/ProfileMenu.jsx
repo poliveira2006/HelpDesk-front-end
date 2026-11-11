@@ -111,7 +111,18 @@ export default function ProfileMenu({ align = 'left', children }) {
           window.innerWidth - width - 12,
         ),
       );
-      setPos({ top: Math.round(r.bottom + 10), left: Math.round(left), width });
+      // se não houver espaço confortável abaixo, o menu abre para cima
+      const upward = window.innerHeight - r.bottom < 340;
+      setPos({
+        top: upward ? 'auto' : Math.round(r.bottom + 10),
+        bottom: upward
+          ? Math.round(window.innerHeight - r.top + 10)
+          : 'auto',
+        maxHeight: upward ? Math.round(r.top - 20) : undefined,
+        up: upward,
+        left: Math.round(left),
+        width,
+      });
     }
     setOpen((v) => !v);
   };
@@ -184,15 +195,17 @@ export default function ProfileMenu({ align = 'left', children }) {
       </button>
       {open && (
         <div
-          className="prof-pop"
+          className={`prof-pop${pos.up ? ' up' : ''}`}
           role="dialog"
           aria-label="Meu perfil"
           ref={popRef}
           style={{
             position: 'fixed',
             top: pos.top,
+            bottom: pos.bottom,
             left: pos.left,
             width: pos.width,
+            maxHeight: pos.maxHeight,
           }}
         >
           <div className="prof-head">

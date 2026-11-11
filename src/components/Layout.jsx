@@ -110,14 +110,6 @@ export default function Layout() {
           <Logo size={27} />
           <b>HelpDesk</b>
         </div>
-        <div className="me">
-          <ProfileMenu>
-            <span className="who">
-              <span className="n">{user.nome}</span>
-              <small>{user.cargo || 'Usuário'}</small>
-            </span>
-          </ProfileMenu>
-        </div>
         <nav aria-label="Navegação principal">
           {links.map(([to, t, ic]) => (
             <NavLink
@@ -130,6 +122,14 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
+        <div className="me">
+          <ProfileMenu>
+            <span className="who">
+              <span className="n">{user.nome}</span>
+              <small>{user.cargo || 'Usuário'}</small>
+            </span>
+          </ProfileMenu>
+        </div>
       </div>
       <div id="main">
         <div className="top">

@@ -6,6 +6,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { api, fmt, qs } from '../api.js';
+import { useAuth } from '../auth.jsx';
 import Filters from '../components/Filters.jsx';
 import TicketModal from '../components/TicketModal.jsx';
 import {
@@ -18,18 +19,24 @@ import {
 } from '../components/icons.jsx';
 export default function Tickets({ scope }) {
   const nav = useNavigate(),
-    qc = useQueryClient();
+    qc = useQueryClient(),
+    { user } = useAuth(),
+    isStaff = user?.perfil === 'analista' || user?.perfil === 'admin';
   const [draft, setDraft] = useState({}),
     [applied, setApplied] = useState({}),
     [page, setPage] = useState(1);
   const [open, setOpen] = useState(scope !== 'meus'),
     [modal, setModal] = useState(null),
-    [wid, setWid] = useState('');
+    [wid, setWid] = useState(''),
+    [busy, setBusy] = useState(false),
+    [fb, setFb] = useState(null);
   useEffect(() => {
     setDraft({});
     setApplied({});
     setPage(1);
     setOpen(scope !== 'meus');
+    setWid('');
+    setFb(null);
   }, [scope]);
   const params = {
     ...applied,
@@ -52,12 +59,32 @@ export default function Tickets({ scope }) {
     a.download = 'tickets.csv';
     a.click();
   };
-  const work = async () => {
+  const work = async (ev) => {
+    ev.preventDefault();
+    const raw = String(wid).trim();
+    if (!/^\d+$/.test(raw) || Number(raw) < 1) {
+      setFb({
+        ok: false,
+        text: 'Informe um ID de ticket válido (número inteiro maior que zero).',
+      });
+      return;
+    }
+    const id = Number(raw);
+    setBusy(true);
+    setFb(null);
     try {
-      await api(`/tickets/${parseInt(wid, 10)}/trabalhar`, { method: 'POST' });
+      const t = await api(`/tickets/${id}/trabalhar`, { method: 'POST' });
+      setFb({
+        ok: true,
+        text: `Ticket #${t.id} — ${t.titulo} atribuído a você.`,
+      });
       qc.invalidateQueries({ queryKey: ['tickets'] });
+      qc.invalidateQueries({ queryKey: ['ticket', id] });
+      setModal({ id, edit: true });
     } catch (e) {
-      alert(e.message);
+      setFb({ ok: false, text: e.message });
+    } finally {
+      setBusy(false);
     }
   };
   return (
@@ -67,12 +94,13 @@ export default function Tickets({ scope }) {
           <Plus size={14} /> Novo Ticket
         </button>
       </div>
-      {scope === 'meus' && (
+      {scope === 'meus' && isStaff && (
         <div className="box">
-          <h3>Trabalhar</h3>
-          <div
+          <h3>Buscar Meus Tickets</h3>
+          <form
             className="body"
             style={{ display: 'flex', gap: 20, alignItems: 'end' }}
+            onSubmit={work}
           >
             <div>
               <label>Tipo de trabalho :</label>
@@ -81,25 +109,58 @@ export default function Tickets({ scope }) {
               </select>
             </div>
             <div>
-              <label>Id do trabalho :</label>
+              <label htmlFor="wid">ID do ticket :</label>
               <input
+                id="wid"
                 type="number"
+                min="1"
+                step="1"
+                inputMode="numeric"
+                placeholder="ex.: 7"
                 value={wid}
                 onChange={(e) => setWid(e.target.value)}
               />
             </div>
-            <button className="btn" onClick={work}>
-              Começar
+            <button className="btn" type="submit" disabled={busy || !wid}>
+              {busy ? 'Buscando…' : 'buscar'}
             </button>
-          </div>
+          </form>
+          {fb && (
+            <div
+              className={fb.ok ? 'auth-ok' : 'err'}
+              style={{ padding: '0 16px 12px' }}
+              role={fb.ok ? 'status' : 'alert'}
+              aria-live="polite"
+            >
+              {fb.text}
+            </div>
+          )}
         </div>
       )}
       <div className="box">
         <h3>
           Filtros{' '}
-          <span style={{ cursor: 'pointer' }} onClick={() => setOpen(!open)}>
-            {open ? '⌃' : '⌄'}
-          </span>
+          <button
+            type="button"
+            className="filter-toggle"
+            onClick={() => setOpen(!open)}
+            aria-expanded={open}
+            aria-label={open ? 'Recolher filtros' : 'Expandir filtros'}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="14"
+              height="14"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d={open ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} />
+            </svg>
+          </button>
         </h3>
         {open && (
           <Filters
