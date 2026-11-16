@@ -1,18 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, fmt } from '../api.js';
+import { useAuth } from '../auth.jsx';
 import { useLookups } from '../hooks.js';
-import { X } from './icons.jsx';
-const initials = (n) =>
-  (n || '?')
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase();
+import { Trash, X } from './icons.jsx';
+
+const Field = ({ label, wide, children }) => (
+  <div className={wide ? 'tk-f wide' : 'tk-f'}>
+    <span className="tk-lbl">{label}</span>
+    <div className="tk-val">{children}</div>
+  </div>
+);
+const or = (v) => v || '—';
+
 export default function TicketModal({ id, edit, onClose }) {
   const qc = useQueryClient(),
+    { user } = useAuth(),
+    isStaff = user?.perfil === 'analista' || user?.perfil === 'admin',
     { data: L = {} } = useLookups();
   const { data: t } = useQuery({
     queryKey: ['ticket', id],
@@ -51,114 +55,206 @@ export default function TicketModal({ id, edit, onClose }) {
     },
     onError: (e) => setErr(e.message),
   });
+  const del = useMutation({
+    mutationFn: () => api('/tickets/' + id, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tickets'] });
+      qc.removeQueries({ queryKey: ['ticket', id] });
+      onClose();
+    },
+    onError: (e) => setErr(e.message),
+  });
+  const confirmDelete = () => {
+    if (
+      window.confirm(
+        `Excluir o ticket #${id}? Esta ação não pode ser desfeita.`,
+      )
+    )
+      del.mutate();
+  };
   if (!t || f.titulo === undefined) return null;
-  const d = !edit,
-    set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const opts = (k) =>
     (L[k] || []).map((x) => (
       <option key={x.id} value={x.id}>
         {x.nome}
       </option>
     ));
+  const msgs = t.mensagens || [];
   return (
-    <div id="modal">
-      <div className="box">
-        <h3>
-          Ticket #{id}
+    <div
+      id="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label={edit ? 'Editar ticket' : 'Visualizar ticket'}
+      onClick={(e) => e.target.id === 'modal' && onClose()}
+    >
+      <div className="tk-page">
+        <div className="tk-head">
+          <div>
+            <h1>{edit ? 'Editar Ticket' : 'Visualizar Ticket'}</h1>
+            <div className="tk-crumb">
+              Tickets <span>›</span> #{id}
+            </div>
+          </div>
           <button
+            type="button"
             className="btn sec sm icon-btn"
             onClick={onClose}
             aria-label="Fechar"
           >
-            <X size={14} />
+            <X size={15} />
           </button>
-        </h3>
-        <div className="body form">
-          <div className="row">
-            <label>Título</label>
-            <input value={f.titulo} disabled={d} onChange={set('titulo')} />
-          </div>
-          <div className="row">
-            <label>Descrição</label>
-            <textarea
-              rows={3}
-              value={f.descricao}
-              disabled={d}
-              onChange={set('descricao')}
-            />
-          </div>
-          <div className="row">
-            <label>Status</label>
-            <select value={f.statusId} disabled={d} onChange={set('statusId')}>
-              {opts('status')}
-            </select>
-          </div>
-          <div className="row">
-            <label>Prioridade</label>
-            <select
-              value={f.prioridadeId}
-              disabled={d}
-              onChange={set('prioridadeId')}
-            >
-              {opts('prioridades')}
-            </select>
-          </div>
-          <div className="row">
-            <label>Responsável</label>
-            <select
-              value={f.responsavelId}
-              disabled={d}
-              onChange={set('responsavelId')}
-            >
-              <option value="" />
-              {opts('usuarios')}
-            </select>
-          </div>
-          <div className="row">
-            <label>Mensagens</label>
-            <div className="msgs">
-              {t.mensagens.length
-                ? t.mensagens.map((m, i) => (
-                    <div className="msg" key={i}>
-                      <span className="msg-ava">{initials(m.nome)}</span>
-                      <div>
-                        <div className="msg-head">
-                          <b>{m.nome}</b>
-                          <time>{fmt(m.criadoEm)}</time>
-                        </div>
-                        <div className="msg-text">{m.texto}</div>
-                      </div>
-                    </div>
-                  ))
-                : '—'}
+        </div>
+
+        <section className="tk-card">
+          <h2>Detalhes do Ticket</h2>
+          <div className="tk-body">
+            <div className="tk-grid">
+              <Field label="Título" wide>
+                {edit ? (
+                  <input value={f.titulo} onChange={set('titulo')} />
+                ) : (
+                  <span className="tk-strong">{t.titulo}</span>
+                )}
+              </Field>
+
+              <Field label="Descrição" wide>
+                {edit ? (
+                  <textarea
+                    rows={3}
+                    value={f.descricao}
+                    onChange={set('descricao')}
+                  />
+                ) : (
+                  <div className="tk-pre">{or(t.descricao)}</div>
+                )}
+              </Field>
+
+              <Field label="Criado em">{or(fmt(t.criadoEm))}</Field>
+              <Field label="Alterado em">{or(fmt(t.alteradoEm))}</Field>
+
+              <Field label="Responsável">
+                {edit ? (
+                  <select value={f.responsavelId} onChange={set('responsavelId')}>
+                    <option value="" />
+                    {opts('usuarios')}
+                  </select>
+                ) : (
+                  or(t.responsavel)
+                )}
+              </Field>
+              <Field label="Previsão para solução">
+                {or(fmt(t.previsaoSolucao))}
+              </Field>
+
+              <Field label="Categoria">{or(t.categoria)}</Field>
+              <Field label="Empresa">{or(t.empresa)}</Field>
+
+              <Field label="Prioridade">
+                {edit ? (
+                  <select value={f.prioridadeId} onChange={set('prioridadeId')}>
+                    {opts('prioridades')}
+                  </select>
+                ) : (
+                  <span className="badge" style={{ '--c': t.cor }}>
+                    {(t.prioridade || '').split(' - ')[0] || '—'}
+                  </span>
+                )}
+              </Field>
+              <Field label="Solicitante">{or(t.solicitante)}</Field>
+
+              <Field label="Status">
+                {edit ? (
+                  <select value={f.statusId} onChange={set('statusId')}>
+                    {opts('status')}
+                  </select>
+                ) : (
+                  or(t.status)
+                )}
+              </Field>
+              <Field label="Área">{or(t.area)}</Field>
+
+              <Field label="Sistema">{or(t.sistema)}</Field>
+              <Field label="Classificação">{or(t.classificacao)}</Field>
+
+              <Field label="Resolvido em">{or(fmt(t.resolvidoEm))}</Field>
+              <Field label="Tickets relacionados" wide>
+                <div className="tk-pre">{or(t.relacionados)}</div>
+              </Field>
             </div>
           </div>
-          {edit && (
-            <>
-              <div className="row">
-                <label>Comentário</label>
+        </section>
+
+        <section className="tk-card">
+          <h2>Mensagens</h2>
+          <div className="tk-body">
+            {msgs.length ? (
+              <div className="tk-msgs">
+                {msgs.map((m, i) => (
+                  <article className="tk-msg" key={i}>
+                    <header className="tk-msg-head">
+                      <b>{m.nome}</b>
+                      <time>{fmt(m.criadoEm)}</time>
+                    </header>
+                    <div className="tk-msg-text">{m.texto}</div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="tk-empty">Nenhuma mensagem registrada.</div>
+            )}
+            {edit && (
+              <div className="tk-comment">
+                <label htmlFor="tk-comentario">Novo comentário</label>
                 <textarea
-                  rows={2}
+                  id="tk-comentario"
+                  rows={3}
                   value={f.comentario}
                   onChange={set('comentario')}
+                  placeholder="Adicione um comentário ao ticket…"
                 />
               </div>
-              <div className="row">
-                <span />
-                <div>
+            )}
+          </div>
+        </section>
+
+        {edit && (
+          <>
+            <div className="tk-footer">
+              <div>
+                {isStaff && (
                   <button
-                    className="btn"
-                    onClick={() => save.mutate()}
-                    disabled={save.isPending}
+                    type="button"
+                    className="btn danger sm"
+                    onClick={confirmDelete}
+                    disabled={del.isPending}
                   >
-                    Salvar
+                    <Trash size={13} /> Excluir
                   </button>
-                  <div className="err">{err}</div>
-                </div>
+                )}
               </div>
-            </>
-          )}
-        </div>
+              <div className="tk-actions">
+                <button type="button" className="btn sec" onClick={onClose}>
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => save.mutate()}
+                  disabled={save.isPending}
+                >
+                  {save.isPending ? 'Salvando…' : 'Salvar'}
+                </button>
+              </div>
+            </div>
+            {err && (
+              <div className="tk-error" role="alert">
+                {err}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

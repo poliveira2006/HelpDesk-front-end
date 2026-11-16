@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   keepPreviousData,
@@ -17,6 +17,19 @@ import {
   Inbox,
   Plus,
 } from '../components/icons.jsx';
+const GROUPS = [
+  ['status', 'Status'],
+  ['prioridade', 'Prioridade'],
+  ['empresa', 'Empresa'],
+  ['responsavel', 'Responsável'],
+  ['categoria', 'Categoria'],
+  ['sistema', 'Sistema'],
+  ['nenhum', 'Nenhum'],
+];
+const groupValue = (t, k) =>
+  k === 'prioridade'
+    ? (t.prioridade || '').split(' - ')[0] || '—'
+    : t[k] || '—';
 export default function Tickets({ scope }) {
   const nav = useNavigate(),
     qc = useQueryClient(),
@@ -29,7 +42,8 @@ export default function Tickets({ scope }) {
     [modal, setModal] = useState(null),
     [wid, setWid] = useState(''),
     [busy, setBusy] = useState(false),
-    [fb, setFb] = useState(null);
+    [fb, setFb] = useState(null),
+    [groupBy, setGroupBy] = useState('status');
   useEffect(() => {
     setDraft({});
     setApplied({});
@@ -37,6 +51,7 @@ export default function Tickets({ scope }) {
     setOpen(scope !== 'meus');
     setWid('');
     setFb(null);
+    setGroupBy('status');
   }, [scope]);
   const params = {
     ...applied,
@@ -87,6 +102,53 @@ export default function Tickets({ scope }) {
       setBusy(false);
     }
   };
+  const groups = [];
+  if (data && groupBy !== 'nenhum') {
+    const byKey = new Map();
+    for (const t of data.items) {
+      const k = groupValue(t, groupBy);
+      if (!byKey.has(k)) {
+        const g = { key: k, items: [] };
+        byKey.set(k, g);
+        groups.push(g);
+      }
+      byKey.get(k).items.push(t);
+    }
+  }
+  const row = (t) => (
+    <tr key={t.id}>
+      <td className="strong">{t.id}</td>
+      <td>
+        <span className="badge" style={{ '--c': t.cor }}>
+          {t.prioridade.split(' - ')[0]}
+        </span>
+      </td>
+      <td className="strong">{t.titulo}</td>
+      <td>{fmt(t.criadoEm)}</td>
+      <td>{t.sistema}</td>
+      <td>{t.status}</td>
+      <td>{t.categoria}</td>
+      <td>{t.empresa}</td>
+      <td>{t.responsavel}</td>
+      <td>{fmt(t.previsaoSolucao)}</td>
+      <td>{fmt(t.resolvidoEm)}</td>
+      <td>{t.classificacao}</td>
+      <td style={{ whiteSpace: 'nowrap' }}>
+        <button
+          className="btn sec sm"
+          onClick={() => setModal({ id: t.id, edit: false })}
+        >
+          Visualizar
+        </button>{' '}
+        <button
+          className="btn sm"
+          onClick={() => setModal({ id: t.id, edit: true })}
+        >
+          Editar
+        </button>
+      </td>
+    </tr>
+  );
   return (
     <>
       <div className="head">
@@ -176,7 +238,20 @@ export default function Tickets({ scope }) {
       <div className="box">
         <h3>
           <span>Lista de Tickets ({data?.total ?? 0})</span>
-          <span>
+          <span className="list-tools">
+            <label className="grp">
+              Agrupar por
+              <select
+                value={groupBy}
+                onChange={(e) => setGroupBy(e.target.value)}
+              >
+                {GROUPS.map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button className="btn sec sm icon-btn" onClick={exportCsv}>
               <Download size={13} /> Exportar
             </button>{' '}
@@ -205,39 +280,17 @@ export default function Tickets({ scope }) {
               </tr>
             </thead>
             <tbody>
-              {data?.items.map((t) => (
-                <tr key={t.id}>
-                  <td className="strong">{t.id}</td>
-                  <td>
-                    <span className="badge" style={{ '--c': t.cor }}>
-                      {t.prioridade.split(' - ')[0]}
-                    </span>
-                  </td>
-                  <td className="strong">{t.titulo}</td>
-                  <td>{fmt(t.criadoEm)}</td>
-                  <td>{t.sistema}</td>
-                  <td>{t.status}</td>
-                  <td>{t.categoria}</td>
-                  <td>{t.empresa}</td>
-                  <td>{t.responsavel}</td>
-                  <td>{fmt(t.previsaoSolucao)}</td>
-                  <td>{fmt(t.resolvidoEm)}</td>
-                  <td>{t.classificacao}</td>
-                  <td style={{ whiteSpace: 'nowrap' }}>
-                    <button
-                      className="btn sec sm"
-                      onClick={() => setModal({ id: t.id, edit: false })}
-                    >
-                      Visualizar
-                    </button>{' '}
-                    <button
-                      className="btn sm"
-                      onClick={() => setModal({ id: t.id, edit: true })}
-                    >
-                      Editar
-                    </button>
-                  </td>
-                </tr>
+              {groupBy === 'nenhum' && data?.items.map(row)}
+              {groups.map((g) => (
+                <Fragment key={g.key}>
+                  <tr className="group-row">
+                    <td colSpan={13}>
+                      <span className="group-name">{g.key}</span>
+                      <span className="group-count">{g.items.length}</span>
+                    </td>
+                  </tr>
+                  {g.items.map(row)}
+                </Fragment>
               ))}
               {data && !data.items.length && (
                 <tr>

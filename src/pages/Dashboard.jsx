@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { api, fmt } from '../api.js';
 import { Inbox } from '../components/icons.jsx';
+import ResolucoesChart from '../components/ResolucoesChart.jsx';
+// gráfico de resoluções dos últimos 12 meses
 
 const P = [
   ['1', '1 dia'],
@@ -57,8 +59,8 @@ export default function Dashboard() {
   });
   return (
     <div className="dash">
-      <h1 className="dash-title">Tickets Criados no(s) último(s)</h1>
-      <div className="chips">
+      <h1 className="dash-title">Visão Geral</h1>
+      <div className="chips" title="Período dos últimos tickets atualizados">
         {P.map(([v, l]) => (
           <button
             key={v}
@@ -82,8 +84,8 @@ export default function Dashboard() {
         </div>
         <div className="card done">
           <div>
-            <span className="lbl">Tickets Concluídos</span>
-            <b>{isLoading && !data ? '—' : n(data?.concluidos)}</b>
+            <span className="lbl">Tickets Resolvidos</span>
+            <b>{isLoading && !data ? '—' : n(data?.resolvidos)}</b>
           </div>
           <span className="ic done">
             <Ic d={check} />
@@ -99,6 +101,8 @@ export default function Dashboard() {
           </span>
         </div>
       </div>
+
+      <ResolucoesChart />
 
       <div className="box recent">
         <h3>Últimos Tickets Atualizados ({PLBL[dias]})</h3>
