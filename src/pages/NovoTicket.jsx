@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, fmt } from '../api.js';
 import { useAuth } from '../auth.jsx';
+import { isStaff } from '../permissions.js';
 import { useLookups } from '../hooks.js';
 const R = ({ l, children }) => (
   <div className="row">
@@ -35,6 +36,7 @@ const empty = {
 };
 export default function NovoTicket() {
   const { user } = useAuth(),
+    staff = isStaff(user),
     nav = useNavigate(),
     qc = useQueryClient(),
     { data: L = {} } = useLookups();
@@ -72,7 +74,7 @@ export default function NovoTicket() {
         areaId: +f.areaId,
         sistemaId: +f.sistemaId,
         categoriaId: +f.categoriaId,
-        responsavelId: f.responsavelId ? +f.responsavelId : null,
+        responsavelId: staff && f.responsavelId ? +f.responsavelId : null,
         ...(f.comentario ? { comentario: f.comentario } : {}),
       },
       {
@@ -127,14 +129,16 @@ export default function NovoTicket() {
             blank="Escolha a Empresa..."
           />
           <S f={f} set={set} L={L} k="areaId" src="areas" l="Área *" />
-          <S
-            f={f}
-            set={set}
-            L={L}
-            k="responsavelId"
-            src="usuarios"
-            l="Atribuir Responsável"
-          />
+          {staff && (
+            <S
+              f={f}
+              set={set}
+              L={L}
+              k="responsavelId"
+              src="usuarios"
+              l="Atribuir Responsável"
+            />
+          )}
           <R l="Solicitante">{user.nome}</R>
           <S f={f} set={set} L={L} k="sistemaId" src="sistemas" l="Sistema *" />
           <S

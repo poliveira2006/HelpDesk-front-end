@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, fmt } from '../api.js';
 import { useAuth } from '../auth.jsx';
+import { isStaff } from '../permissions.js';
 import { useLookups } from '../hooks.js';
 import { Trash, X } from './icons.jsx';
 
@@ -16,7 +17,8 @@ const or = (v) => v || '—';
 export default function TicketModal({ id, edit, onClose }) {
   const qc = useQueryClient(),
     { user } = useAuth(),
-    isStaff = user?.perfil === 'analista' || user?.perfil === 'admin',
+    staff = isStaff(user),
+    canEdit = edit && staff,
     { data: L = {} } = useLookups();
   const { data: t } = useQuery({
     queryKey: ['ticket', id],
@@ -36,8 +38,18 @@ export default function TicketModal({ id, edit, onClose }) {
       });
   }, [t]);
   const save = useMutation({
-    mutationFn: () =>
-      api('/tickets/' + id, {
+    mutationFn: () => {
+      // Quem não é da equipe só pode comentar; enviar os campos faria o
+      // backend recusar a requisição inteira com 403.
+      if (!staff) {
+        const comentario = (f.comentario || '').trim();
+        if (!comentario) throw new Error('Escreva um comentário.');
+        return api('/tickets/' + id, {
+          method: 'PUT',
+          body: { comentario },
+        });
+      }
+      return api('/tickets/' + id, {
         method: 'PUT',
         body: {
           titulo: f.titulo,
@@ -47,7 +59,8 @@ export default function TicketModal({ id, edit, onClose }) {
           responsavelId: f.responsavelId ? +f.responsavelId : null,
           ...(f.comentario ? { comentario: f.comentario } : {}),
         },
-      }),
+      });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['tickets'] });
       qc.invalidateQueries({ queryKey: ['ticket', id] });
@@ -86,13 +99,13 @@ export default function TicketModal({ id, edit, onClose }) {
       id="modal"
       role="dialog"
       aria-modal="true"
-      aria-label={edit ? 'Editar ticket' : 'Visualizar ticket'}
+      aria-label={!edit ? 'Visualizar ticket' : staff ? 'Editar ticket' : 'Comentar ticket'}
       onClick={(e) => e.target.id === 'modal' && onClose()}
     >
       <div className="tk-page">
         <div className="tk-head">
           <div>
-            <h1>{edit ? 'Editar Ticket' : 'Visualizar Ticket'}</h1>
+            <h1>{!edit ? 'Visualizar Ticket' : staff ? 'Editar Ticket' : 'Comentar Ticket'}</h1>
             <div className="tk-crumb">
               Tickets <span>›</span> #{id}
             </div>
@@ -112,7 +125,7 @@ export default function TicketModal({ id, edit, onClose }) {
           <div className="tk-body">
             <div className="tk-grid">
               <Field label="Título" wide>
-                {edit ? (
+                {canEdit ? (
                   <input value={f.titulo} onChange={set('titulo')} />
                 ) : (
                   <span className="tk-strong">{t.titulo}</span>
@@ -120,7 +133,7 @@ export default function TicketModal({ id, edit, onClose }) {
               </Field>
 
               <Field label="Descrição" wide>
-                {edit ? (
+                {canEdit ? (
                   <textarea
                     rows={3}
                     value={f.descricao}
@@ -135,7 +148,7 @@ export default function TicketModal({ id, edit, onClose }) {
               <Field label="Alterado em">{or(fmt(t.alteradoEm))}</Field>
 
               <Field label="Responsável">
-                {edit ? (
+                {canEdit ? (
                   <select value={f.responsavelId} onChange={set('responsavelId')}>
                     <option value="" />
                     {opts('usuarios')}
@@ -152,7 +165,7 @@ export default function TicketModal({ id, edit, onClose }) {
               <Field label="Empresa">{or(t.empresa)}</Field>
 
               <Field label="Prioridade">
-                {edit ? (
+                {canEdit ? (
                   <select value={f.prioridadeId} onChange={set('prioridadeId')}>
                     {opts('prioridades')}
                   </select>
@@ -165,7 +178,7 @@ export default function TicketModal({ id, edit, onClose }) {
               <Field label="Solicitante">{or(t.solicitante)}</Field>
 
               <Field label="Status">
-                {edit ? (
+                {canEdit ? (
                   <select value={f.statusId} onChange={set('statusId')}>
                     {opts('status')}
                   </select>
@@ -223,7 +236,7 @@ export default function TicketModal({ id, edit, onClose }) {
           <>
             <div className="tk-footer">
               <div>
-                {isStaff && (
+                {staff && (
                   <button
                     type="button"
                     className="btn danger sm"
@@ -242,9 +255,15 @@ export default function TicketModal({ id, edit, onClose }) {
                   type="button"
                   className="btn"
                   onClick={() => save.mutate()}
-                  disabled={save.isPending}
+                  disabled={save.isPending || (!staff && !f.comentario?.trim())}
                 >
-                  {save.isPending ? 'Salvando…' : 'Salvar'}
+                  {save.isPending
+                    ? staff
+                      ? 'Salvando…'
+                      : 'Enviando…'
+                    : staff
+                      ? 'Salvar'
+                      : 'Enviar comentário'}
                 </button>
               </div>
             </div>

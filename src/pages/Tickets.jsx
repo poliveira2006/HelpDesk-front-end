@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-query';
 import { api, fmt, qs } from '../api.js';
 import { useAuth } from '../auth.jsx';
+import { isStaff } from '../permissions.js';
 import Filters from '../components/Filters.jsx';
 import TicketModal from '../components/TicketModal.jsx';
 import {
@@ -34,7 +35,7 @@ export default function Tickets({ scope }) {
   const nav = useNavigate(),
     qc = useQueryClient(),
     { user } = useAuth(),
-    isStaff = user?.perfil === 'analista' || user?.perfil === 'admin';
+    staff = isStaff(user);
   const [draft, setDraft] = useState({}),
     [applied, setApplied] = useState({}),
     [page, setPage] = useState(1);
@@ -140,12 +141,21 @@ export default function Tickets({ scope }) {
         >
           Visualizar
         </button>{' '}
-        <button
-          className="btn sm"
-          onClick={() => setModal({ id: t.id, edit: true })}
-        >
-          Editar
-        </button>
+        {staff ? (
+          <button
+            className="btn sm"
+            onClick={() => setModal({ id: t.id, edit: true })}
+          >
+            Editar
+          </button>
+        ) : (
+          <button
+            className="btn sm"
+            onClick={() => setModal({ id: t.id, edit: true })}
+          >
+            Comentar
+          </button>
+        )}
       </td>
     </tr>
   );
@@ -156,7 +166,7 @@ export default function Tickets({ scope }) {
           <Plus size={14} /> Novo Ticket
         </button>
       </div>
-      {scope === 'meus' && isStaff && (
+      {scope === 'meus' && staff && (
         <div className="box">
           <h3>Buscar Meus Tickets</h3>
           <form
@@ -252,9 +262,13 @@ export default function Tickets({ scope }) {
                 ))}
               </select>
             </label>
-            <button className="btn sec sm icon-btn" onClick={exportCsv}>
-              <Download size={13} /> Exportar
-            </button>{' '}
+            {staff && (
+              <>
+                <button className="btn sec sm icon-btn" onClick={exportCsv}>
+                  <Download size={13} /> Exportar
+                </button>{' '}
+              </>
+            )}
             <button className="btn sec sm icon-btn" onClick={() => refetch()}>
               <Refresh size={13} /> Atualizar
             </button>
